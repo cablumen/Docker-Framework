@@ -1,0 +1,5 @@
+{
+    "concurrent_workers" : "",
+    "container_entry_point" : "",
+    "post_processing_entry_point": ""
+}
