@@ -2,8 +2,8 @@ import json
 import os
 import itertools
 from math import ceil
+import uuid
 
-#TODO: add hash and status to run_config 
 
 # input: a json input_config
 # output: a list of dict ranges for each (key, value) pair in the default_config
@@ -59,6 +59,8 @@ def print_config_dict(write_file, config_dict):
     write_file.write("[\n")
     for run_index, run_config in enumerate(config_product):
         write_file.write("\t{\n")
+        config_hash = uuid.uuid5(uuid.NAMESPACE_OID, str(run_config))
+        write_file.write("\t\t\"hash\": \"" + str(config_hash) + "\",\n")
         run_config_length = len(run_config)
         for config_index, config_value in enumerate(run_config):
             config_name = config_names[config_index]
