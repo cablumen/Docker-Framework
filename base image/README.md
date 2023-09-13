@@ -1,25 +1,25 @@
-# base image documentation
+# Base Image
 
-This folder simplifies building the containers used by my other projects (https://github.com/cablumen).
-The containers used by my other repos will follow this naming scheme <github repo>:latest.
-    Moving forward my github repos will only use lower-case to align with dockerhub repos.
+This folder simplifies building the containers used by my other projects https://github.com/cablumen.  
+The containers used by my other repos will follow this naming scheme \<github repo\>:latest.  
+&emsp;Moving forward my github repos will only use lower-case to align with dockerhub repos.  
 
-Change the LABEL instructions and the contents of requirements.txt to generate new docker images.
+Change the LABEL instructions and the contents of requirements.txt to generate new docker images.  
 
-Common commands
-    Get list of python packages from outside running container
-        docker exec <container ID> pip list
+#### Common commands  
+&emsp;Get list of python packages from outside running container  
+&emsp;&emsp;docker exec \<container ID\> pip list  
 
-    Get list of python packages from inside running container
-        docker run -it <image name>
-        pip list
+&emsp;Get list of python packages from inside running container  
+&emsp;&emsp;docker run -it \<image name\>  
+&emsp;&emsp;pip list  
 
-    Build a new image
-        Navigate to this folder
-        docker build -t <image name> .
+&emsp;Build a new image  
+&emsp;&emsp;Navigate to this folder  
+&emsp;&emsp;docker build -t \<image name\> .  
 
-    View an image's labels
-        docker image inspect --format='{{json .Config.Labels}}' <image name>
+&emsp;View an image's labels  
+&emsp;&emsp;docker image inspect --format='{{json .Config.Labels}}' \<image name\>  
 
-    Share images to Docker Hub
-        docker push -a <docker repo>:latest
+&emsp;Share images to Docker Hub  
+&emsp;&emsp;docker push -a \<docker repo\>:latest  
