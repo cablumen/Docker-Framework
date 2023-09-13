@@ -1,11 +1,13 @@
-import json
-import os
-import pickle
-import sys
-import uuid
+from json import load as jsonload
+from os.path import dirname, realpath, join, isfile, isdir
+from os import remove, mkdir, rename
+from pickle import dump as pickledump
+from pickle import load as pickleload
+from sys import exit as sysexit
+from uuid import uuid5, NAMESPACE_OID
+from subprocess import run as run_subprocess
+from shutil import rmtree
 import docker
-
-# https://github.com/FNNDSC/swarm/blob/master/swarm.py
 
 class Manager(object):
     def __init__(self, manager_config, run_config):
@@ -13,31 +15,41 @@ class Manager(object):
         # concurrent_workers
         if manager_config['concurrent_workers'] < 1:
             print("Error: manager_config.json's concurrent_workers cannot be less than 1")
-            sys.exit()
+            sysexit()
         self.concurrent_workers = manager_config['concurrent_workers']
 
         # entry_point
-        root_path = os.path.dirname(os.path.realpath(__file__))
-        src_path = os.path.join(root_path, "src")
-        container_entry_path = os.path.join(src_path, manager_config['entry_path'])
-        if not os.path.isfile(container_entry_path):
+        root_path = dirname(realpath(__file__))
+        src_path = join(root_path, "src")
+        container_entry_path = join(src_path, manager_config['entry_path'])
+        if not isfile(container_entry_path):
             print("Error: no entry_point file in src directory")
-            sys.exit()
+            sysexit()
         self.entry_path = manager_config['entry_path']
 
         # save_path
         if not manager_config['save_path'].endswith('.pk'):
             print("Error: save_path must be pickle type (.pk)")
-            sys.exit()
-        self.save_path = os.path.join(root_path, manager_config['save_path'])
+            sysexit()
+        self.save_path = join(root_path, manager_config['save_path'])
 
+        # log_path
+        self.log_path = join(root_path, "logs")
+        if not isdir(self.log_path):
+            mkdir(self.log_path)
 
-        self.config_hash = str(uuid.uuid5(uuid.NAMESPACE_OID, str(run_config)))
+        self.config_hash = str(uuid5(NAMESPACE_OID, str(run_config)))
         self.state = {"config_hash": self.config_hash}
 
         self.docker_client = docker.from_env()
         run_hashes = [x["hash"] for x in run_config]
-        self.execute_config(run_hashes)
+
+        # save current state if thrown exception
+        try:
+            self.execute_config(run_hashes)
+        except Exception:
+            self.save_state()
+            raise
 
     def execute_config(self, run_hashes):
         self.get_state()
@@ -46,7 +58,7 @@ class Manager(object):
         self.config_count = len(run_hashes)
         if len(self.state["finished"]) == self.config_count:
             print("Manager: run_config has been completed. Delete " + str(self.save_path) + " to re-run.")
-            sys.exit()
+            sysexit()
 
         self.create_run_image()
 
@@ -75,22 +87,23 @@ class Manager(object):
                 containers_to_run = self.concurrent_workers - len(self.state["running"])
                 series_hash_list = self.state["queued"][0:containers_to_run]
                 self.state["queued"] = self.state["queued"][containers_to_run:]
-                self.create_containers(series_hash_list)
                 self.state["running"].extend(series_hash_list)
+                self.create_containers(series_hash_list)
 
     def get_state(self):
         # check for persisted manager data
-        if os.path.isfile(self.save_path):
+        if isfile(self.save_path):
             save_file = open(self.save_path, 'rb')
-            save_state = pickle.load(save_file)
+            save_state = pickleload(save_file)
             save_file.close()
             # if pickled data is associated with this run config, use it
             if save_state["config_hash"] == self.state["config_hash"]:
-                # no guarantee running jobs were complete 
-                save_state["queued"].extend(save_state["running"])
-                self.delete_containers(save_state["running"])
+                # insure finished and running containers were deleted
+                check_for_deletion = save_state["running"] + save_state["finished"]
+                self.delete_containers(check_for_deletion)
 
-                self.state["queued"] = save_state["queued"]
+                # re-run running containers because no guarantee of completion 
+                self.state["queued"] =  save_state["running"] + save_state["queued"]
                 self.state["running"] = []
                 self.state["finished"] = save_state["finished"]
             # if pickled data is not associated with this run config, delete
@@ -103,17 +116,26 @@ class Manager(object):
 
     def save_state(self):
         save_file = open(self.save_path, 'wb')
-        pickle.dump(self.state, save_file)
+        pickledump(self.state, save_file)
         save_file.close()
 
     def delete_state(self):
-        os.remove(self.save_path)
+        remove(self.save_path)
 
     def create_run_image(self):
+        # remove image if it exists
+        self.delete_run_image()
         self.docker_client.images.build(path = "./", tag=self.config_hash)
 
     def delete_run_image(self):
-        self.docker_client.images.remove(self.config_hash)
+        try:
+            self.docker_client.images.get(self.config_hash)
+            self.docker_client.images.remove(self.config_hash)
+        except docker.errors.NotFound:
+            pass
+        except Exception:
+            print("Error: unable to delete docker image")
+            raise
 
     def create_containers(self, hash_list):
         for series_hash in hash_list:
@@ -122,11 +144,8 @@ class Manager(object):
     def create_container(self, series_hash):
         self.delete_container(series_hash)
 
-        # create volume to persist data
-        self.docker_client.volumes.create(name=series_hash)
-
         # create container using manager_config.json values
-        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_path, series_hash], volumes={str(series_hash): {'bind': '/save', 'mode': 'rw'}}, detach=True)
+        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_path, series_hash], detach=True)
 
     def delete_containers(self, hash_list):
         for series_hash in hash_list:
@@ -139,6 +158,24 @@ class Manager(object):
             if container.status != "exited":
                 print("Warning: attempting to delete unfinished container")
 
+            # collect files in log folder
+            src_path = series_hash + ":/logs/"
+            run_subprocess(["docker", "cp", "-q", src_path, self.log_path])
+
+            # rename logs folder to container id
+            old_container_path = join(self.log_path, "logs")
+            new_container_path = join(self.log_path, series_hash)
+            if isdir(new_container_path):
+                rmtree(new_container_path)
+
+            rename(old_container_path, new_container_path)
+
+            # write container stdout to file
+            stdout_path = join(new_container_path, "stdout.txt")
+            stdout_file = open(stdout_path, "w")
+            stdout_file.write(container.logs().decode())
+            stdout_file.close()
+
             container.remove()
         except docker.errors.NotFound:
             pass
@@ -146,31 +183,19 @@ class Manager(object):
             print("Error: unable to delete container")
             raise
 
-        # remove volume used by container
-        try:
-            #TODO: copy contents out of volume
-            volume = self.docker_client.volumes.get(series_hash)
-            volume.remove()
-        except docker.errors.NotFound:
-            pass
-        except Exception:
-            print("Error: unable to delete volume")
-            raise
-
-
 if __name__ == "__main__":
     manager_config_path = "./manager_config.json"
-    if not os.path.isfile(manager_config_path):
+    if not isfile(manager_config_path):
         print("Error: no manager_config.json file in root directory")
-        sys.exit()
+        sysexit()
 
-    manager_config = json.load(open(manager_config_path))
+    manager_config = jsonload(open(manager_config_path))
 
     run_config_path = "./run_config.json"
-    if not os.path.isfile(run_config_path):
-        print("Error: no run_config_path.json file in root directory")
-        sys.exit()
+    if not isfile(run_config_path):
+        print("Error: no run_config.json file in root directory")
+        sysexit()
 
-    run_config = json.load(open(run_config_path))
+    run_config = jsonload(open(run_config_path))
 
     manager = Manager(manager_config, run_config)

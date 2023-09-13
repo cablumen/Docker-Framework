@@ -22,15 +22,15 @@ def get_config_ranges(input_config):
 
             else:
                 # if config is iterable, recurse
-                config_range = to_dot_notation(key, get_config_ranges(value))
+                config_range = to_underscore_notation(key, get_config_ranges(value))
                 output.update(config_range)
 
     return output
 
-def to_dot_notation(namespace, input_config):
+def to_underscore_notation(namespace, input_config):
     output_config = {}
     for key, value in input_config.items():
-        output_config[namespace + "." + key] = value
+        output_config[namespace + "_" + key] = value
 
     return output_config
 

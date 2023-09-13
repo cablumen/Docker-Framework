@@ -2,7 +2,7 @@
 FROM cablumen/mnist-exploration:latest
 
 # copy source files 
-COPY /src /src
+COPY /src /
 
 # copy run_config into source for configuration fetching
-COPY run_config.json /src 
+COPY run_config.json / 
