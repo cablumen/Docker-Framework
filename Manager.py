@@ -68,11 +68,11 @@ class Manager(object):
             running_hashes = [x for x in self.state["running"] if x in running_container_names]
             finished_hashes = [x for x in self.state["running"] if x not in running_container_names]
             self.state["running"] = running_hashes
-            self.state["finished"].extend(finished_hashes)
 
             # if any containers finished, persist state for next run
             if len(finished_hashes) > 0:
                 self.delete_containers(finished_hashes)
+                self.state["finished"].extend(finished_hashes)
                 self.save_state()
 
                 # check if all configs are finished
@@ -104,13 +104,15 @@ class Manager(object):
                 self.state["queued"] =  save_state["running"] + save_state["queued"]
                 self.state["running"] = []
                 self.state["finished"] = save_state["finished"]
-            # if pickled data is not associated with this run config, delete
+                return
+            
+            # if pickled data is not associated with this run config, delete it 
             else:
                 self.delete_state()
-        else:
-            self.state["queued"] = [x["HASH"] for x in run_config]
-            self.state["running"] = []
-            self.state["finished"] = []
+
+        self.state["queued"] = [x["HASH"] for x in run_config]
+        self.state["running"] = []
+        self.state["finished"] = []
 
     def save_state(self):
         save_file = open(self.save_path, 'wb')
@@ -121,8 +123,9 @@ class Manager(object):
         remove(self.save_path)
 
     def create_run_image(self):
-        # remove image if it exists
+        # remove image for run if it exists
         self.delete_run_image()
+
         self.docker_client.images.build(path = "./", tag=self.config_hash)
 
     def delete_run_image(self):
@@ -140,6 +143,7 @@ class Manager(object):
             self.create_container(series_hash)
 
     def create_container(self, series_hash):
+        # remove container for series if it exists
         self.delete_container(series_hash)
 
         # get environment variables from run_config.json
@@ -160,22 +164,24 @@ class Manager(object):
         try:
             container = self.docker_client.containers.get(series_hash)
             if container.status != "exited":
-                print("Warning: attempting to delete unfinished container")
+                print("Warning: attempting to delete unfinished container.")
 
-            # rename logs folder to container id
-            old_container_path = join(self.log_path, "logs")
-            new_container_path = join(self.log_path, series_hash)
-            if isdir(new_container_path):
-                rmtree(new_container_path)
+            # create folder for container data
+            dest_path = join(self.log_path, series_hash)
+            if isdir(dest_path):
+                rmtree(dest_path)
+                mkdir(dest_path)
 
             # collect files in log folder
-            src_path = series_hash + ":/logs/"
-            run_subprocess(["docker", "cp", "-q", src_path, self.log_path])
+            src_path = series_hash + ":/logs/."
+            copy_returncode = run_subprocess(["docker", "cp", "-q", src_path, dest_path]).returncode
 
-            rename(old_container_path, new_container_path)
+            # if copy was successful, try to rename folder
+            if copy_returncode != 0:
+                print("Warning: data copy from container to host unsuccessful.")
 
             # write container stdout to file
-            stdout_path = join(new_container_path, "stdout.txt")
+            stdout_path  = join(dest_path, "stdout.txt")
             stdout_file = open(stdout_path, "w")
             stdout_file.write(container.logs().decode())
             stdout_file.close()
