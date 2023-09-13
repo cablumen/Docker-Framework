@@ -10,7 +10,7 @@ from shutil import rmtree
 import docker
 
 class Manager(object):
-    def __init__(self, manager_config, run_config):
+    def __init__(self):
         #   manager config parsing
         # concurrent_workers
         if manager_config['concurrent_workers'] < 1:
@@ -42,21 +42,19 @@ class Manager(object):
         self.state = {"config_hash": self.config_hash}
 
         self.docker_client = docker.from_env()
-        run_hashes = [x["hash"] for x in run_config]
 
         # save current state if thrown exception
         try:
-            self.execute_config(run_hashes)
+            self.execute_config()
         except Exception:
             self.save_state()
             raise
 
-    def execute_config(self, run_hashes):
+    def execute_config(self):
         self.get_state()
 
         # check if all configs are finished
-        self.config_count = len(run_hashes)
-        if len(self.state["finished"]) == self.config_count:
+        if len(self.state["queued"]) == 0:
             print("Manager: run_config has been completed. Delete " + str(self.save_path) + " to re-run.")
             sysexit()
 
@@ -78,7 +76,7 @@ class Manager(object):
                 self.save_state()
 
                 # check if all configs are finished
-                if len(self.state["finished"]) == self.config_count:
+                if len(self.state["queued"]) + len(self.state["running"]) == 0:
                     self.delete_run_image()
                     break
 
@@ -110,7 +108,7 @@ class Manager(object):
             else:
                 self.delete_state()
         else:
-            self.state["queued"] = [x["hash"] for x in run_config]
+            self.state["queued"] = [x["HASH"] for x in run_config]
             self.state["running"] = []
             self.state["finished"] = []
 
@@ -144,8 +142,14 @@ class Manager(object):
     def create_container(self, series_hash):
         self.delete_container(series_hash)
 
+        # get environment variables from run_config.json
+        container_env = []
+        series_config = [x for x in run_config if x["HASH"] == series_hash][0]
+        for key, value in series_config.items():
+            container_env.append(key + "=" + str(value))
+
         # create container using manager_config.json values
-        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_path, series_hash], detach=True)
+        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_path], environment=container_env, detach=True)
 
     def delete_containers(self, hash_list):
         for series_hash in hash_list:
@@ -158,15 +162,15 @@ class Manager(object):
             if container.status != "exited":
                 print("Warning: attempting to delete unfinished container")
 
-            # collect files in log folder
-            src_path = series_hash + ":/logs/"
-            run_subprocess(["docker", "cp", "-q", src_path, self.log_path])
-
             # rename logs folder to container id
             old_container_path = join(self.log_path, "logs")
             new_container_path = join(self.log_path, series_hash)
             if isdir(new_container_path):
                 rmtree(new_container_path)
+
+            # collect files in log folder
+            src_path = series_hash + ":/logs/"
+            run_subprocess(["docker", "cp", "-q", src_path, self.log_path])
 
             rename(old_container_path, new_container_path)
 
@@ -184,6 +188,7 @@ class Manager(object):
             raise
 
 if __name__ == "__main__":
+    # get contents of manager_config.json
     manager_config_path = "./manager_config.json"
     if not isfile(manager_config_path):
         print("Error: no manager_config.json file in root directory")
@@ -191,6 +196,7 @@ if __name__ == "__main__":
 
     manager_config = jsonload(open(manager_config_path))
 
+    # get contents of run_config.json
     run_config_path = "./run_config.json"
     if not isfile(run_config_path):
         print("Error: no run_config.json file in root directory")
@@ -198,4 +204,4 @@ if __name__ == "__main__":
 
     run_config = jsonload(open(run_config_path))
 
-    manager = Manager(manager_config, run_config)
+    manager = Manager()

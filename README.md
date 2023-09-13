@@ -19,3 +19,7 @@ manager_config.json parameters
     concurrent_workers: number of containers to run concurrently in parallel execution mode. Must be greater or equal to 1.
     container_entry_point: python file to run your project.
     post_processing_entry_point: python file to execute after iterating over every entry in run_config.json.
+
+TODO:
+use correct formating for ReadMe's
+Revisit documentation
