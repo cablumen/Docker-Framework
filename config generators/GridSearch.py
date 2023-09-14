@@ -99,7 +99,6 @@ for root, dirs, files in os.walk("../src/"):
         default_config_path = os.path.join(root, "default_config.json")
         break
 
-
 default_config = json.load(open(default_config_path))
 config_dict = get_config_ranges(default_config)
 
