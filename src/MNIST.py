@@ -1,4 +1,4 @@
-# The code below was copied from (https://www.tensorflow.org/tutorials/quickstart/beginner) for the purpose of an example.
+# The code below was copied from (https://www.tensorflow.org/tutorials/quickstart/beginner) as an example.
 
 import tensorflow as tf
 import config
@@ -17,7 +17,7 @@ model = tf.keras.models.Sequential([
 
 # define loss and compile the model
 loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'], jit_compile=True)
 
-model.fit(x_train, y_train, epochs=5)
+model.fit(x_train, y_train, epochs=5, verbose=2)
 model.evaluate(x_test,  y_test, verbose=2)

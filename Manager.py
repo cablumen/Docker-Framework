@@ -47,6 +47,12 @@ class Manager(object):
             sysexit()
         self.rerun_configs = manager_config['rerun_completed_configs']
 
+        # use_gpus
+        if not isinstance(manager_config['use_gpus'], bool):
+            print("Error: manager_config.json's use_gpus must be type of bool")
+            sysexit()
+        self.use_gpus = manager_config['use_gpus']
+
         # save_path
         self.save_path = join(root_path, "manager_save.pk")
 
@@ -222,8 +228,13 @@ class Manager(object):
         for key, value in series_config.items():
             container_env[key] = value
 
+        gpu_request = None
+        if self.use_gpus:
+            # TODO: remove assumption that gpu to be used is device id 1
+            gpu_request=[docker.types.DeviceRequest(device_ids=["all"], capabilities=[['gpu']])]
+
         # create container using manager_config.json values
-        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_point], environment=container_env, detach=True)
+        self.docker_client.containers.run(image=self.config_hash, name=series_hash, entrypoint=['python', self.entry_point], device_requests=gpu_request, environment=container_env, detach=True)
         print("Manager: started " + series_hash + " container.")
 
     def delete_containers(self, hash_list):

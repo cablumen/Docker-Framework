@@ -21,13 +21,19 @@ class PostProcessing(object):
         max_accuracy_series = None
         min_loss = 1
         min_loss_series = None
+
+        # iterate over series directories
         for root, dirs, files in walk(data_path):
             for directory in dirs:
                 if directory != "post-run":
                     series_path = join(data_path, directory)
                     series_hash = directory
+
+                    # iterate over files in series directory
                     for root, dirs, files in walk(series_path):
                         for file in files:
+
+                            # parse the stdout file for tensorflow metrics
                             if file == "stdout.txt":
                                 stdout_path = join(series_path, file)
                                 with open(stdout_path, "r") as stdout_file:
@@ -51,6 +57,7 @@ class PostProcessing(object):
 
                                             self.write_file.write("\t" + metric + "\n")
                                     self.write_file.write("\n")
+
         # report best series
         self.write_file.write(max_accuracy_series + " had the highest accuracy of " + str(max_accuracy) + "\n")
         self.write_file.write(min_loss_series + " had the lowest loss of " + str(min_loss) + "\n")

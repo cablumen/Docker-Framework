@@ -1,5 +1,4 @@
 {
-    "MESSAGE" : "Hello World",
     "LAYER1_NEURONS" : [12, 144, 12],
-    "DROPOUT" : [0.10, 0.30, 0.05]
+    "DROPOUT" : [0.10, 0.25, 0.05]
 }

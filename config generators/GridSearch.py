@@ -1,3 +1,8 @@
+"""
+This module implements a sampling algorithm that parses the default_config.json and generates run_config.json in the root folder.
+default_config.json values should follow the syntax [start_value, end_value, step] where start_value and end_value are inclusive.
+"""
+
 import json
 import os
 import itertools
