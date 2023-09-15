@@ -1,5 +1,6 @@
 # config generators folder
 
+
 This folder contains sampling algorithms that generate run_config.json which stores every permutation of parameters tested during hyper-parameter search.
 
 ### How to generate a run_config.json

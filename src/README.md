@@ -1,5 +1,6 @@
 # src folder
 
+
 This folder will contain your project code, your authored default_config.json, and the in-box config.py.  
 Any files persisted from docker containers will be stored in the logs folder with the folder structure: /logs/\<run_hash\>/\<series_hash\>/  
 

@@ -1,5 +1,6 @@
 # base image folder
 
+
 This folder simplifies building the containers used by my other projects https://github.com/cablumen.  
 The containers used by my other repos will follow this naming scheme \<github repo\>:latest.  
 &emsp;Moving forward my github repos will only use lower-case to align with dockerhub repos.  
