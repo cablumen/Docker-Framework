@@ -1,0 +1,7 @@
+{
+    "concurrent_containers" : 1,
+    "container_entry_path" : "MNIST.py",
+    "post_run_entry_path" : "PostProcessing.py",
+    "rerun_completed_configs": false,
+    "use_gpus": false
+}
