@@ -10,7 +10,7 @@ def get(name, default):
         try:
             env_value = literal_eval(env_value)
         except SyntaxError:
-            # catching string literals
+            # catch string literals
             pass
         except Exception:
             print("Error: unable to delete docker image.")

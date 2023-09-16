@@ -17,6 +17,6 @@ The default_config.json is a dictionary that defines the set of values to test f
 ### Project integration
 
 In order to fully take advantage of this framework, some integration changes are necessary.  
-1. Replace hyper-parameter delcarations with calls to config.py's to fetch environmental variables. See in-box MNIST.py for an example.  
-2. If there are any files you want to persist, make sure they are written to the .\logs\ folder within the container.  
-3. If you wish to run some data-processing logic after hyper-parameter search has completed, make sure it's implemented to traverse the file structure of the logs folder.  
+1. Replace hyper-parameter delcarations with calls to config.py's get to fetch environmental variables. See in-box MNIST.py for an example.  
+2. If there are any files you want to persist, make sure they are written to the .\\logs\\ folder within the container.  
+3. \[Optional\] Implement a script for post-run data analysis. logs.py's get_logs returns a list of (series metadata, filepath) tuples to easily iterate over persisted files. See in-box PostProcessing.py for an example.  
