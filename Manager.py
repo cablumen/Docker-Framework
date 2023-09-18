@@ -22,18 +22,24 @@ class Manager(object):
             sysexit()
         self.concurrent_containers = manager_config['concurrent_containers']
 
+        root_path = dirname(realpath(__file__))
+        src_path = join(root_path, "src")
+
         # container_entry_path
         if not isinstance(manager_config['container_entry_path'], str):
             print("Error: manager_config.json's container_entry_path must be type of str")
             sysexit()
 
-        root_path = dirname(realpath(__file__))
-        src_path = join(root_path, "src")
         container_entry_path = join(src_path, manager_config['container_entry_path'])
         if not isfile(container_entry_path):
             print("Error: no container_entry_path file in src directory")
             sysexit()
         self.entry_point = manager_config['container_entry_path']
+
+        # post_run_entry_path
+        if not isinstance(manager_config['post_run_entry_path'], str):
+            print("Error: manager_config.json's post_run_entry_path must be type of str")
+            sysexit()
 
         post_entry_path = join(src_path, manager_config['post_run_entry_path'])
         if not isfile(post_entry_path):
@@ -93,10 +99,11 @@ class Manager(object):
             finished_hashes = [x for x in self.state["running"] if x not in running_container_names]
             self.state["running"] = running_hashes
 
-            # if any containers finished, persist state for next run
+            # if any containers finished
             if len(finished_hashes) > 0:
                 self.delete_containers(finished_hashes)
                 self.state["finished"].extend(finished_hashes)
+                # persist state for next run
                 self.save_state()
 
                 # check if all configs are finished

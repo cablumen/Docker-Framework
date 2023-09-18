@@ -6,13 +6,13 @@ This repo provides a framework for machine learning hyper-parameter search that 
 
 0. \[Windows\] [Install wsl](https://learn.microsoft.com/en-us/windows/wsl/install).  
 1. [Install python](https://www.python.org/downloads/). [Install docker](https://docker-py.readthedocs.io/en/stable/).  
-2. Run \\config generators\\GridSearch.py then Manager.py to run example demo.  
+2. Run \\config generator\\RunConfigGenerator.py then Manager.py to run example demo.  
 3. Delete example files (MNIST.py, PostProcessing.py) and then copy your project into the src folder.  
 4. Investigate the \\base image\\ folder. Follow the README to containerize your project's dependencies in a docker image.  
-5. Follow the "Author a default_config.json" section in the README in the \\src\\ folder.  
-6. Follow the "How to generate a run_config.json" section in the README in the \\config generator\\ folder.  
-7. Follow the "Project integration" section in the README.md in the \\src\\ folder.  
-8. Edit the Dockerfile in this folder to use your docker image and edit manager_config.json to your desired settings. See the below section for more details on manager_config.json parameters.  
+5. Follow the "Author a default_config.json" section of the README in the \\src\\ folder.  
+6. Follow the "How to generate a run_config.json" section of the README in the \\config generator\\ folder.  
+7. Follow the "Project integration" section of the README.md in the \\src\\ folder.  
+8. Edit the Dockerfile in this folder to use your docker image and update manager_config.json to your desired settings. See the below section for more details on manager_config.json parameters.  
 9. Run Manager.py.  
 
 ### manager_config.json parameters
@@ -25,5 +25,7 @@ This repo provides a framework for machine learning hyper-parameter search that 
 
 ### TODO  
 
-Re-implement search algorithms for inheritence/extensibility  
-Maybe some description in base image README about how we create another image on top of base image  
+Better documentation for RunConfigGenerator.py  
+Maybe integrate RunConfigGenerator into Manager.py?  
+    This simplifies things for users although we need some sort of mechanism whether to choose new run_config or saved state   
+More robust implementations of sampling algorithms  

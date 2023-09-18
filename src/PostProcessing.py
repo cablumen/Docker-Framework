@@ -1,5 +1,5 @@
 from os.path import dirname, realpath, join, isdir
-from os import mkdir, walk
+from os import mkdir
 
 from logs import get_logs
 

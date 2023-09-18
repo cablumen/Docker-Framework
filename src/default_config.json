@@ -1,4 +1,5 @@
 {
-    "LAYER1_NEURONS" : [12, 144, 12],
-    "DROPOUT" : [0.10, 0.25, 0.05]
+    "LAYER1_NEURONS" : ["geometric", 12, 144, 2],
+    "DROPOUT" : ["arithmetic", 0.10, 0.25, 0.05],
+    "DROPOUT2" : ["nominal", "test1", "test2", "test3", "test4", "test5"]
 }
